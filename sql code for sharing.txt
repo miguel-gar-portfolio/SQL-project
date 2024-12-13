@@ -1,0 +1,118 @@
+#For starters I will define some tables and relationships between them by means of FK and PK. 
+#As well, a variety of different data types are defined as well as constraints
+CREATE TABLE `countries` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) NOT NULL,
+  `language` varchar(10) DEFAULT NULL,
+  `link` varchar(100) DEFAULT NULL,
+  `country_id` char(2) NOT NULL,
+  PRIMARY KEY (`id`)
+) ;
+
+CREATE TABLE `departments` (
+  `department_id` int NOT NULL,
+  `department_name` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`department_id`)
+);
+
+
+CREATE TABLE `employee` (
+  `employee_id` int NOT NULL,
+  `name` varchar(20) DEFAULT NULL,
+  `country_id` int DEFAULT NULL,
+  PRIMARY KEY (`employee_id`),
+  CONSTRAINT country_id_fk FOREIGN KEY (country_id) REFERENCES countries(id)
+) ;
+
+CREATE TABLE `jobs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `tittle` varchar(10) NOT NULL,
+  `min_salary` int DEFAULT NULL,
+  `max_salary` int DEFAULT NULL,
+  `is_wage_legal` tinyint(1) DEFAULT NULL,
+  `min_years_of_work_experience` float DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ;
+
+CREATE TABLE `job_record` (
+  `employee_id` int NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date DEFAULT NULL,
+  `job_id` int NOT NULL,
+  `department_id` int DEFAULT NULL,
+  PRIMARY KEY (`employee_id`,`start_date`,`job_id`),
+  KEY `job_id_fk` (`job_id`),
+  KEY `department_fk` (`department_id`),
+  CONSTRAINT `department_fk` FOREIGN KEY (`department_id`) REFERENCES `departments` (`department_id`),
+  CONSTRAINT `employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employee` (`employee_id`),
+  CONSTRAINT `job_id_fk` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`)
+) ;
+
+
+#At this point I will use some modifying commands for altering previous tables 
+#First we introduce a new column to a preexisting table and set a default value 
+ALTER TABLE countries
+ADD COLUMN region varchar(30) ;
+
+ALTER TABLE countries 
+ALTER region SET DEFAULT 'no region record' ;
+
+#Secondly we modify that new column again and make ita not nullable 
+ALTER TABLE countries 
+MODIFY region varchar(30) NOT NULL;
+
+#To further dive into alter commands I will define another table 
+CREATE TABLE employees_documentation (
+doc_id INT PRIMARY KEY,
+id_card tinyint not null,
+comments varchar (140),
+health_insurance tinyint not null
+);
+
+
+#Let's create a column in job_record as a FK 
+ALTER TABLE job_record 
+ADD COLUMN doc_id int NOT NULL;
+
+ALTER TABLE job_record
+ADD CONSTRAINT doc_id_fk FOREIGN KEY (doc_id) REFERENCES employees_documentation(doc_id);
+
+#In here we check our job_record table current status
+DESCRIBE job_record;
+
+#If I tried to delete the table employees_documentation it would produce an error due to FK constraint
+DROP TABLE employees_documentation ;
+
+#For solving that we delete the constraint 
+ALTER TABLE job_record 
+DROP CONSTRAINT doc_id_fk;
+
+#Now we can drop the table 
+DROP TABLE employees_documentation ;
+
+#and I will drop doc_id column from table job_record
+ALTER TABLE job_record 
+DROP COLUMN doc_id;
+
+#On these following lines I will insert some data in our tables by code
+ALTER TABLE countries 
+DROP COLUMN region;
+
+ALTER TABLE employee 
+DROP COLUMN region_name;
+
+
+INSERT INTO countries(name,`language`,link,country_id)
+    VALUES ('Spain','Spanish' ,'https://www.banderas-mundo.es/data/flags/w580/es.webp','ES')
+    
+INSERT INTO employee 
+VALUES(1,'Miguel',1)
+
+INSERT INTO departments 
+VALUES(1,'Human resources')
+
+INSERT INTO jobs (id,tittle,min_salary,max_salary,min_years_of_work_experience)
+VALUES(1,'Matematico', 25000, 35000, 2)
+
+INSERT INTO job_record(employee_id,start_date,job_id,department_id) 
+VALUES(1,'2024-12-25',1,1)
