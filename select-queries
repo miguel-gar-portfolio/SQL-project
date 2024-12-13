@@ -1,0 +1,362 @@
+/* The following select queries are performed over a data set named data-set-select-queries that can be found in this same repository*/
+
+
+/* As you may observe in here we navigate in depth on how to select data that verifies some specifications. 
+* Order, gruop by, limit, count, avg, subselects and many more commands are present in order to extract precise data */
+
+/* On the orders table, obtain the number of orders per month and customer number. 
+Sort the result by number of orders in descending order. */
+
+SELECT 
+	customerNumber , 
+	CONCAT(YEAR(orderDate), MONTH(orderDate)) year_and_month, 
+	COUNT(orderNumber) order_count
+	FROM orders 
+GROUP BY year_and_month , customerNumber 
+ORDER BY count(orderNumber) DESC
+
+SELECT 
+	customerNumber , 
+	CONCAT(YEAR(orderDate), MONTH(orderDate)) year_and_month, 
+	DATE_FORMAT(orderDate,'%Y-%m') 
+	FROM orders 
+
+	
+SELECT 
+	customerNumber , 
+	DATE_FORMAT(orderDate,'%Y-%m') year_and_month, 
+	COUNT(orderNumber) order_count
+	FROM orders 
+GROUP BY year_and_month , customerNumber 
+ORDER BY count(orderNumber) DESC
+
+
+SELECT COUNT( DISTINCT customerNumber) counter FROM orders o 
+
+
+SELECT employeeNumber, firstName , lastName , officeCode
+FROM employees e 
+
+SELECT officeCode, city,state,country FROM offices o 
+
+
+SELECT employeeNumber, firstName , lastName , e.officeCode,city,state,country
+FROM employees e 
+INNER JOIN offices o ON o.officeCode = e.officeCode 
+
+
+/* Replace customerNumber with name and surname in the previous select */
+SELECT  
+	DATE_FORMAT(orderDate,'%Y-%m') year_and_month, 
+	COUNT(orderNumber) order_count,
+	customerName,
+	contactFirstName,
+	contactLastName
+	FROM orders o
+	INNER JOIN customers c ON c.customerNumber = o.customerNumber 
+	GROUP BY year_and_month , customerName, contactFirstName, contactLastName 
+   	ORDER BY count(orderNumber) DESC
+   	
+   	
+   	SELECT
+	DATE_FORMAT(orderDate, '%Y-%m') year_and_month,
+	customerName,
+	contactFirstName,
+	contactLastName,
+	COUNT(orderNumber) orders
+FROM orders o
+INNER JOIN customers c ON o.customerNumber = c.customerNumber 
+GROUP BY year_and_month, customerName, contactFirstName, contactLastName 
+ORDER BY orders DESC
+
+
+/* Give the name and surname in a single field */
+SELECT  
+	DATE_FORMAT(orderDate,'%Y-%m') AS year_and_month, 
+	COUNT(orderNumber)  AS order_count,
+	customerName,
+	CONCAT(TRIM(contactFirstName), ' ', TRIM(contactLastName) ) AS contact_name
+	FROM orders o
+	INNER JOIN customers c ON c.customerNumber = o.customerNumber 
+	GROUP BY year_and_month, customerName, contact_name
+   	ORDER BY count(orderNumber) DESC
+
+/* Filter those with more than two purchases */
+   	SELECT  
+	DATE_FORMAT(orderDate,'%Y-%m') AS year_and_month, 
+	COUNT(orderNumber) AS order_count,
+	customerName,
+	CONCAT(TRIM(contactFirstName), ' ', TRIM(contactLastName) ) AS contact_name
+	FROM orders o
+	INNER JOIN customers c ON c.customerNumber = o.customerNumber 
+	GROUP BY year_and_month, customerName, contact_name
+	HAVING COUNT(orderNumber) > 2
+   	ORDER BY count(orderNumber) DESC
+   	
+   	
+   	SELECT DISTINCT A.customerName FROM(
+   		SELECT  
+		DATE_FORMAT(orderDate,'%Y-%m') AS year_and_month, 
+		COUNT(orderNumber) AS order_count,
+		customerName,
+		CONCAT(TRIM(contactFirstName), ' ', TRIM(contactLastName) ) AS contact_name
+		FROM orders o
+		INNER JOIN customers c ON c.customerNumber = o.customerNumber 
+		GROUP BY year_and_month, customerName, contact_name
+		HAVING COUNT(orderNumber) > 2
+   		ORDER BY count(orderNumber) DESC) AS A
+
+    /* Retrieve Unique Customers and Their Monthly Order Counts */
+   	SELECT DISTINCT B.customerName, order_count FROM(
+   		SELECT  
+			DATE_FORMAT(orderDate,'%Y-%m') AS year_and_month, 
+			COUNT(orderNumber) AS order_count,
+			customerName,
+			CONCAT(TRIM(contactFirstName), ' ', TRIM(contactLastName) ) AS contact_name
+		FROM orders o
+			INNER JOIN customers c ON c.customerNumber = o.customerNumber 
+		GROUP BY year_and_month, customerName, contact_name
+	   	ORDER BY count(orderNumber) DESC) AS B
+   
+
+/* Count how many customers have purchased more than five times */
+SELECT 
+	c.customerName,
+	COUNT(o.orderNumber) as total_orders
+FROM orders o 
+JOIN customers c on o.customerNumber=c.customerNumber 
+GROUP BY customerName 
+HAVING total_orders>=5
+
+SELECT COUNT(customerName) FROM (SELECT 
+	c.customerName,
+	COUNT(o.orderNumber) as total_orders
+FROM orders o 
+JOIN customers c on o.customerNumber=c.customerNumber 
+GROUP BY customerName 
+HAVING total_orders>=5) as count
+
+/* Show the last name and first name of employees */
+SELECT 
+CONCAT(TRIM(UPPER(lastName) ), ', ', TRIM(UPPER(firstName))) 
+FROM employees e 
+
+/* Write an SQL statement to get the list of products (their name),
+from the classic line that have between 3500 and 7500 units available in stock. */ 
+
+SELECT p.productName
+FROM products p 
+WHERE quantityInStock BETWEEN 3500 AND 7500 AND productLine = 'Classic cars'
+
+/* Write an SQL statement to get the average gross margin of each product line
+(simplified version, considering the recommended sale price, not the actual sale prices of the orders) */
+
+SELECT 
+	productLine, 
+	AVG( (MSRP - buyPrice) / buyprice) as gross_margin
+FROM products p 
+GROUP BY productLine 
+
+/* Write an SQL statement to get the average gross margin of each product line with
+real sale prices from orders) */
+
+/* Incorrect calculation, reference */
+SELECT
+productline,
+(SUM(quantityOrdered*priceEach)/SUM(quantityOrdered))- AVG(buyprice) as  avg_line_gross_margin
+FROM orderdetails o 
+JOIN products p ON o.productCode = p.productCode 
+GROUP BY  productline
+
+/* Correct calculation, because first weighted averages are calculated in the orderdetails table and then
+ * the calculations are completed with product data */
+
+SELECT 
+	productLine, 
+	AVG(mean_sale_price - buyPrice) as avg_line_gross_margin
+FROM (SELECT
+		o.productCode,
+		(SUM(quantityOrdered*priceEach)/SUM(quantityOrdered)) as  mean_sale_price
+	FROM orderdetails o 
+	GROUP BY o.productCode ) AS subselect
+JOIN products p ON subselect.productCode = p.productCode
+GROUP BY productLine
+
+/* Write an SQL statement to get the list of products that have not been sold */
+
+SELECT 
+	p.productCode 
+FROM products p 
+WHERE productCode NOT IN (
+	SELECT DISTINCT 
+		o.productCode 
+	FROM orderdetails o )
+	
+	
+SELECT *
+FROM products p 
+LEFT JOIN orderdetails o ON p.productCode = o.productCode
+WHERE o.productCode IS NULL
+
+/* Obtain using an SQL statement the ranking of customers who have purchased in the store,
+ * indicating the number of orders and the total purchase amount, sorted by total amount in descending order. */
+
+SELECT 
+	customerName,
+	COUNT(DISTINCT od.orderNumber) AS total_orders,
+	SUM(quantityOrdered*priceEach) AS total_spent
+FROM orderdetails od
+JOIN orders o ON o.orderNumber = od.orderNumber 
+JOIN customers c ON c.customerNumber = o.customerNumber 
+GROUP BY customerName 
+ORDER BY total_spent DESC 
+
+
+/* Option B */
+SELECT
+	A.customerName,
+	A.numOrders,
+	B.totalAmount
+FROM (
+	SELECT 
+		c.customerNumber,
+		c.customerName,
+		COUNT(DISTINCT o.orderNumber) numOrders
+	FROM customers c
+	INNER JOIN orders o ON c.customerNumber = o.customerNumber
+	GROUP BY c.customerNumber, c.customerName
+) A INNER JOIN (
+	SELECT 
+		c.customerNumber,
+		c.customerName,
+		SUM(p.amount) totalAmount
+	FROM customers c
+	INNER JOIN payments p ON c.customerNumber = p.customerNumber
+	GROUP BY c.customerNumber, c.customerName
+) B ON A.customerNumber = B.customerNumber
+ORDER BY B.totalAmount DESC
+
+/* Obtain the 5 best-selling products along with the number of units sold and their amount,
+that customers from Spain and the United States have purchased */
+
+SELECT 
+	productName,
+	SUM(quantityOrdered) AS total_bought,
+	SUM(priceEach*quantityOrdered)  AS total_amount 
+FROM orderdetails o 
+JOIN products p ON p.productCode = o.productCode 
+JOIN orders o2 ON o2.orderNumber = o.orderNumber 
+JOIN customers c ON c.customerNumber = o2.customerNumber 
+WHERE c.country = 'Spain' OR c.country ='USA'
+GROUP BY productName
+ORDER BY total_bought DESC
+LIMIT 5
+
+
+SELECT
+	country,
+	COUNT(DISTINCT o.orderNumber) AS orders_number,
+	SUM(o2.quantityOrdered*o2.priceEach) AS total_amount 
+FROM customers c 
+JOIN orders o ON c.customerNumber = o.customerNumber 
+JOIN orderdetails o2 ON o.orderNumber = o2.orderNumber 
+GROUP BY country 
+ORDER BY total_amount DESC 
+
+/* We want to represent in a bar chart the number of checks, their amount, and the number of associated customers, by month. */
+
+SELECT 
+	COUNT(DISTINCT checkNumber) AS checks_quantity,
+	SUM(amount) AS total_amount,
+	COUNT(DISTINCT customerNumber) AS customers_quantity, 
+	DATE_FORMAT(paymentDate, '%Y-%m') year_and_month
+FROM payments p 
+GROUP BY year_and_month
+
+/* Based on the previous exercise, calculate the year-over-year growth in the three metrics */
+
+SELECT 
+	COUNT(DISTINCT checkNumber) AS checks_quantity,
+	SUM(amount) AS total_amount,
+	COUNT(DISTINCT customerNumber) AS customers_quantity
+FROM payments p
+WHERE  YEAR(paymentDate) = 2003
+
+SELECT 
+	COUNT(DISTINCT checkNumber) AS checks_quantity,
+	SUM(amount) AS total_amount,
+	COUNT(DISTINCT customerNumber) AS customers_quantity
+FROM payments p
+WHERE  YEAR(paymentDate) = 2004
+
+SELECT 
+	COUNT(DISTINCT checkNumber) AS checks_quantity,
+	SUM(amount) AS total_amount,
+	COUNT(DISTINCT customerNumber) AS customers_quantity
+FROM payments p
+WHERE  YEAR(paymentDate) = 2005
+
+
+SELECT 
+	(A.checks_quantity - B.checks_quantity)/A.checks_quantity as increment_checks_2003_2004,
+	(B.checks_quantity - C.checks_quantity)/B.checks_quantity as increment_checks_2004_2005,
+	(A.total_amount -B.total_amount)/A.total_amount as increment_amounts_2003_2004,
+	(B.total_amount -C.total_amount)/B.total_amount as increment_amounts_2004_2005,
+	(A.customers_quantity -B.customers_quantity)/A.customers_quantity as increment_customers_quantity_2003_2004,
+	(B.customers_quantity -C.customers_quantity)/B.customers_quantity as increment_customers_quantity_2004_2005
+FROM (SELECT 
+		COUNT(DISTINCT checkNumber) AS checks_quantity,
+		SUM(amount) AS total_amount,
+		COUNT(DISTINCT customerNumber) AS customers_quantity
+	FROM payments p
+	WHERE  YEAR(paymentDate) = 2003) AS A, 
+	(SELECT 
+		COUNT(DISTINCT checkNumber) AS checks_quantity,
+		SUM(amount) AS total_amount,
+		COUNT(DISTINCT customerNumber) AS customers_quantity
+	FROM payments p
+	WHERE  YEAR(paymentDate) = 2004) AS B , 
+	(SELECT 
+		COUNT(DISTINCT checkNumber) AS checks_quantity,
+		SUM(amount) AS total_amount,
+		COUNT(DISTINCT customerNumber) AS customers_quantity
+	FROM payments p
+	WHERE  YEAR(paymentDate) = 2005
+	) AS C
+	
+	
+/* Which two offices register the lowest collection amount */
+
+SELECT 
+	o.city,
+	SUM(amount) AS total_amount
+FROM payments p 
+JOIN customers c ON c.customerNumber = p.customerNumber 
+JOIN employees e ON c.salesRepEmployeeNumber = e.employeeNumber 
+JOIN offices o ON o.officeCode = e.officeCode 
+GROUP BY o.officeCode 
+	
+
+/* Analysis of the gross margin based on the recommended sale price, showing the ten with the lowest gross margin */
+
+SELECT 
+	productName, 
+	MSRP-buyPrice AS gross_margin
+FROM products p 
+ORDER BY gross_margin ASC
+LIMIT 10
+
+/* And if we want to take into account the real margins of the orders, for the year 2005? */
+
+SELECT
+	p.productCode,
+	p.productName,
+	AVG(od.priceEach - p.buyPrice) grossMargin
+FROM products p
+INNER JOIN orderdetails od ON p.productCode = od.productCode
+INNER JOIN orders o ON od.orderNumber = o.orderNumber
+WHERE YEAR(o.orderDate) = 2005
+GROUP BY p.productCode, p.productName
+ORDER BY grossMargin
+LIMIT 10
+
